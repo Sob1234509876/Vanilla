@@ -1,29 +1,181 @@
+// Stuffs for threading
+import java.io.*;
+import java.util.*;
+
+//////////////////////////////////////////
+// Init
 plugins {
-    id("java")
-    id("application")
-}
+    id("java");
+    id("application");
+    id("maven-publish")
+};
 
 sourceSets {
     main {
         java {
-            srcDir("src/java")
-        }
+            srcDir("src/java");
+        };
+
         resources {
-            srcDir("src/resources")
+            srcDir("src/resources");
+        };
+    };
+};
+
+version = "1.0a-SNAPSHOT"; // This might be forgetted to be changed to released name
+
+final String CORE_ARGS = "-saveDir=\"${rootDir}/saves\" -plugDir=\"${buildDir}/libs\" -confDir=\"${rootDir}/configs\" -repoDir=\"${rootDir}/reports\" -uuid=114514";
+final String CORE_VERSION = "1.2.8a-SNAPSHOT";
+final String MAIN_CLASS = "top.sob.vanilla.Main";
+
+//////////////////////////////////////////
+// Build & run
+repositories {
+    mavenCentral()
+    maven {
+        url("https://maven.pkg.github.com/Sob1234509876/Omni-com");
+        credentials {
+            username = System.getenv("MAVEN_USERNAME");
+            password = System.getenv("MAVEN_PASSWORD");
+        };
+    };
+};
+
+dependencies {
+    implementation "top.sob:core:${CORE_VERSION}";
+};
+
+application {
+    mainClass = "${MAIN_CLASS}";
+};
+
+jar {
+    manifest {
+        attributes(
+            "Main-Class" : "${MAIN_CLASS}"
+        );
+    };
+};
+
+//////////////////////////////////////////
+
+task copyDependJar(type: Copy) {
+        from(configurations.runtimeClasspath);
+        into("tmp");
+};
+
+/** Reads the output of core */
+class outputReadThread extends Thread {
+
+    protected final Process p;
+
+    public outputReadThread(Process p) {
+        super();
+        this.p = p;
+    }
+
+    @Override
+    public void run() {
+        BufferedReader isr = this.p.inputReader();
+        String tmp;
+        try {
+
+            println("Flag1 from output thread");
+
+            while((tmp = isr.readLine()) != null) {
+                println(tmp);
+            }
+
+            println("");
+
+            isr.close();
+
+        } catch(IOException error) {
+            error.printStackTrace();
+            System.exit(1);
         }
     }
 }
 
-repositories {
-    mavenCentral()
-    maven {url "https://maven.pkg.github.com/"}
+/** Reads the error output of core */
+class errorReadThread extends Thread {
+    protected final Process p;
+
+    public errorReadThread(Process p) {
+        super();
+        this.p = p;
+    }
+
+    @Override
+    public void run() {
+        BufferedReader isr = this.p.errorReader();
+        String tmp;
+        try {
+
+            println("Flag1 from error thread");
+
+            while((tmp = isr.readLine()) != null) {
+                println(tmp);
+            }
+            isr.close();
+
+            println("");
+
+        } catch(IOException error) {
+            error.printStackTrace();
+            System.exit(1);
+        }
+    }
 }
 
-dependencies {
-    implementation("log4j:log4j:1.2.17")
-    implementation("com.sob:core:1.2.7a-SNAPSHOT")
-}
+// Actually just runs two threads for getting the outputs
+// (including error outputs, discluding log file output)
+tasks.register("runByCore") {
+    group = "application";
+    description = "Runs the core";
 
-application {
-    mainClass = "com.sob.vanilla.Main"
+    // First build then copy the core jar for running
+    dependsOn(tasks.build);
+    dependsOn(tasks.copyDependJar);
+
+    doLast {
+
+        final String CORE_RUN_CMD = "java -jar \"${rootDir}/tmp/core-${CORE_VERSION}.jar\" ${CORE_ARGS} ";
+        final Process proc = Runtime.getRuntime().exec(CORE_RUN_CMD);
+
+        outputReadThread ort = new outputReadThread(proc);
+        errorReadThread ert = new errorReadThread(proc);
+
+        ort.start();
+        ert.start();
+
+        ort.join();
+        ert.join();
+    };
+
+};
+
+//////////////////////////////////////////
+
+// Maven publish
+publishing {
+    repositories {
+        maven {
+            name = "BROKEN_IDK"
+            url = uri("https://maven.pkg.github.com/Sob1234509876/Vanilla")
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_PASSWORD")
+            }
+        }
+    }
+
+    publications {
+        myApp(MavenPublication) {
+            version = "1.0a-SNAPSHOT"
+            groupId = "top.sob"
+            artifactId = "vanilla"
+            from components.java
+        }
+    }
 }

@@ -2,3 +2,8 @@ bin
 .vscode
 .gradle
 build
+tmp
+
+reports
+configs
+saves
