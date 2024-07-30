@@ -1,2 +1,23 @@
-vanilla.pre.help=等13.7亿年后再来看看吧！
-vanilla.pre.cns=请输入存档名称。
+# frame name
+[vanilla.ui.frameName]
+picFrame="天地工坊 | 图"
+
+# cmd ask
+[vanilla.pre]
+help="等13.7亿年后再来看看吧！"
+cns="请输入存档名称。"
+unknownCmd="未知命令。"
+
+# server connection data asking
+[vanilla.pre.play]
+askMode="你将在什么游玩模式下游玩？S代表单人模式、M代表多人模式。"
+
+askFile="请输入存档名称。"
+
+askHost="请输入服务器名称。"
+askPort="请输入服务器端口（默认为%d）。"
+askUsername="请输入你要设置的玩家名称。"
+
+# Ingame stuff
+[vanilla.game.text]
+unknownCmd="未知命令。"

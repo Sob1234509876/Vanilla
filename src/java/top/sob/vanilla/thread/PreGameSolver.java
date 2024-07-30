@@ -2,16 +2,17 @@ package top.sob.vanilla.thread;
 
 import java.io.*;
 // import java.util.*;
-// import java.net.*;
+import java.net.*;
 
 import top.sob.core.*;
-import top.sob.vanilla.api.meta;
-import top.sob.vanilla.net.connection;
+import top.sob.core.api.*;
+import top.sob.vanilla.listener.*;
 
 import static top.sob.core.ui.Graphic.INPUT;
 import static top.sob.core.ui.Graphic.OUTPUT;
 import static top.sob.core.api.meta.SAVES_URI;
 
+import static top.sob.vanilla.api.meta.LANG;
 import static top.sob.vanilla.Main.LOGGER;
 
 /**
@@ -23,6 +24,16 @@ public final class PreGameSolver extends Thread {
     private static final String PLAY_CMD = "PLAY";
     private static final String CNS_CMD = "CNS";
     private static final String HELP_CMD = "HELP";
+    // private static final String MK_SERVER_CMD = "MKS"; // TODO: just finish
+    // this!!!!!!
+
+    public static final int DEF_PORT = 10000;
+    public static final int DEF_BACKLOG = Runtime.getRuntime().availableProcessors(); // IDK, just think it is 8 or
+                                                                                      // whatever
+    public static final String LOCAL_SERVER_URL = "http://localhost:10000/cmd/";
+
+    protected static Server server;
+    protected static Client client;
 
     /** @see Thread#Thread() */
     public PreGameSolver() {
@@ -64,8 +75,12 @@ public final class PreGameSolver extends Thread {
                     writeHelp();
                 } else if (buffer.equals(CNS_CMD)) {
                     createNewSave();
+                    break;
                 } else if (buffer.equals(PLAY_CMD)) {
                     play();
+                    break;
+                    // The break is a tempoary fix for the pgs not stopping
+                    // on getting the submit of INPUT.
                 }
             }
         } catch (Exception e) {
@@ -74,33 +89,110 @@ public final class PreGameSolver extends Thread {
     }
 
     /** Asks for the save file or server and then plays. */
-    private static void play() {
+    private static void play() throws IOException, InterruptedException {
+
+        while (true) {
+
+            OUTPUT.setText(util.getConfig(LANG,
+                    "vanilla",
+                    "pre",
+                    "play",
+                    "askMode"));
+
+            String mode = INPUT.waitAndGetSubmit().toUpperCase();
+            if (mode.equals("S")) {
+                OUTPUT.setText(util.getConfig(LANG,
+                        "vanilla",
+                        "pre",
+                        "play",
+                        "askFile"));
+
+                play(new File(INPUT.waitAndGetSubmit()));
+                break;
+
+            } else if (mode.equals("M")) {
+
+                OUTPUT.setText(util.getConfig(LANG,
+                        "vanilla",
+                        "pre",
+                        "play",
+                        "askHost"));
+                String host = INPUT.waitAndGetSubmit();
+
+                OUTPUT.setText(String.format(util.getConfig(LANG,
+                        "vanilla",
+                        "pre",
+                        "play",
+                        "askPort"), DEF_PORT));
+                String port = INPUT.waitAndGetSubmit();
+
+                OUTPUT.setText(String.format(util.getConfig(LANG,
+                        "vanilla",
+                        "pre",
+                        "play",
+                        "askName")));
+                String name = INPUT.waitAndGetSubmit();
+
+                URL url = new URL(String.format("http://%s:%s/cmd/", host, port));
+
+                play(url, name);
+                break;
+
+            } else {
+                OUTPUT.setText(util.getConfig(LANG, "vanilla", "pre", "unknownCmd"));
+                Thread.sleep(333);
+            }
+
+        }
+
     }
 
     /**
-     * Plays with the given save file.
+     * Plays with the given save file and uses the role local. This method will
+     * first init the connection, then it will first start the server then the
+     * client.
+     * 
+     * @apiNote The server is a daemon thread.
      * 
      * @param save the save file.
+     * @throws IOException when an I/O exception happens.
+     * @see connection#init()
+     * @see connection#connect()
+     * @see Server
+     * @see Client
      */
     private static void play(File save) throws IOException {
 
-        LOGGER.info("Starting a local game...");
+        OUTPUT.setText(null);
 
-        connection.init();
-        connection.connect();
+        plugin.addEventListener(new ClientSideListener());
+        plugin.addEventListener(new ServerSideListener());
 
-        LOGGER.info("Connected to local game.");
+        server = new Server(DEF_PORT, DEF_BACKLOG, save);
+        client = new Client(new URL(LOCAL_SERVER_URL), "YOU");
 
-        // TODO: write the thread for the server and the client.
+        server.start();
+        client.start();
+    }
+
+    /**
+     * TODO: Finish this javadoc.
+     * 
+     * @param url
+     * @param name
+     * @throws IOException
+     */
+    private static void play(URL url, String name) throws IOException {
+        client = new Client(url, name);
+        client.start();
     }
 
     /** Creates a new save and plays it. */
     private static void createNewSave() throws IOException {
-        OUTPUT.setText(
-                util.getProperty(meta.LANG,
-                        "vanilla",
-                        "pre",
-                        "cns"));
+        OUTPUT.setText(util.getConfig(LANG,
+                "vanilla",
+                "pre",
+                "cns"));
 
         String name = INPUT.waitAndGetSubmit();
         File saveDir = new File(SAVES_URI.getPath(), name);
@@ -119,7 +211,7 @@ public final class PreGameSolver extends Thread {
     private static void writeHelp() throws Exception {
 
         OUTPUT.setText(
-                util.getProperty(meta.LANG,
+                util.getConfig(LANG,
                         "vanilla",
                         "pre",
                         "help"));

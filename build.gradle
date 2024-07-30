@@ -57,6 +57,16 @@ jar {
     };
 };
 
+// Java documents
+javadoc {
+    options {
+        encoding "utf-8"
+        charSet "utf-8"
+        author true
+        version true
+    }
+}
+
 //////////////////////////////////////////
 
 task copyDependJar(type: Copy) {
@@ -161,7 +171,7 @@ tasks.register("runByCore") {
 publishing {
     repositories {
         maven {
-            name = "BROKEN_IDK"
+            name = "Github"
             url = uri("https://maven.pkg.github.com/Sob1234509876/Vanilla")
             credentials {
                 username = System.getenv("MAVEN_USERNAME")

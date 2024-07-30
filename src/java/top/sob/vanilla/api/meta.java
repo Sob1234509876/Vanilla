@@ -1,7 +1,8 @@
 package top.sob.vanilla.api;
 
 import java.io.*;
-import java.util.*;
+
+import com.moandjiezana.toml.*;
 
 import top.sob.vanilla.*;
 
@@ -25,7 +26,8 @@ public final class meta {
     public static final ClassLoader THIS_CLASS_LOADER;
     public static final InputStream LANG_STREAM;
     public static final Reader LANG_READER;
-    public static final Properties LANG;
+    public static final Toml LANG;
+    public static final File COPIED_ASSETS_DIR = new File("tmp/Vanilla/assets/");
 
     static {
 
@@ -40,15 +42,9 @@ public final class meta {
         LANG_STREAM = THIS_CLASS_LOADER.getResourceAsStream(
                 String.format("assets/lang/%s.lang", LANGUAGE));
         LANG_READER = new InputStreamReader(LANG_STREAM, DEF_CHARSET);
-        LANG = new Properties();
+        LANG = new Toml();
 
-        try {
-            LANG.load(LANG_READER);
-        } catch (Exception e) {
-
-            LOGGER.fatal("Meta init failed during loading: ", e);
-            System.exit(1);
-        }
+        LANG.read(LANG_READER);
 
     }
 

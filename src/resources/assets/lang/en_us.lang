@@ -1,2 +1,23 @@
-vanilla.pre.help=Not sure yet.
-vanilla.pre.cns=Enter the name of your save.
+# frame name
+[vanilla.ui.frameName]
+picFrame="Omni com | Image"
+
+# cmd ask
+[vanilla.pre]
+help="Not sure yet."
+cns="Enter the name of your save."
+unknownCmd="Unknown command."
+
+# server connection data asking
+[vanilla.pre.play]
+askMode="Which mode are you playing? S for single-player and M for multi-player."
+
+askFile="Enter the name of your save."
+
+askHost="Please enter the host name."
+askPort="Please enter the port(Default: %d)."
+askUsername="Please enter your player name."
+
+# Ingame stuff
+[vanilla.game.text]
+unknownCmd="Unknown command."
